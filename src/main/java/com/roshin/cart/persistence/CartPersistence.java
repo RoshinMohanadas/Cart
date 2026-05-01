@@ -3,6 +3,7 @@ package com.roshin.cart.persistence;
 import com.roshin.cart.dto.Cart;
 import com.roshin.cart.model.CartEntity;
 import com.roshin.cart.model.ProductLineEntity;
+import com.roshin.cart.util.Mapper;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.NotFoundException;
@@ -29,9 +30,17 @@ public class CartPersistence
     @Transactional
     public Cart createCart(final Cart cart)
     {
+        // Check if user has cart already
+        Optional<CartEntity> userCart = cartRepository.findByUsername(cart.getUser());
+
+        if(userCart.isPresent())
+        {
+            throw new IllegalStateException("Cart already existing for user: " + cart.getUser());
+        }
+
         final CartEntity newCart = new CartEntity();
 
-        newCart.setUser(cart.getUser());
+        newCart.setUsername(cart.getUser());
         newCart.setProductLines(new ArrayList<>());
 
         entityManager.persist(newCart);
@@ -41,17 +50,23 @@ public class CartPersistence
     }
 
     @Transactional
-    public void addProductToCart(final Long cartId, final Long productId)
+    public Cart addProductToCart(final Long cartId, final Long productId)
     {
         // Find existing cart
         final Optional<CartEntity> existingCart = cartRepository.findById(cartId);
 
         if(existingCart.isPresent())
         {
-            existingCart.get().getProductLines().addFirst(ProductLineEntity.builder()
-                            .productId(productId)
-                            .count(1L)
-                    .build());
+            // Check if product already exists in cart
+            if(!existingCart.get().getProductLines().stream().anyMatch(p -> p.getProductId().equals(productId)))
+            {
+                existingCart.get().getProductLines().addFirst(ProductLineEntity.builder()
+                        .productId(productId)
+                        .count(1L)
+                        .build());
+            }
+
+            return Mapper.convertEntityToDTO(existingCart.get());
         }
         else
         {
@@ -60,7 +75,7 @@ public class CartPersistence
     }
 
     @Transactional
-    public void deleteProductFromCart(final Long cartId, final Long productId)
+    public Cart deleteProductFromCart(final Long cartId, final Long productId)
     {
         // Find existing cart
         final Optional<CartEntity> existingCart = cartRepository.findById(cartId);
@@ -72,6 +87,10 @@ public class CartPersistence
             {
                 throw new NotFoundException("Product not found");
             }
+            else
+            {
+                return Mapper.convertEntityToDTO(existingCart.get());
+            }
         }
         else
         {
@@ -79,9 +98,11 @@ public class CartPersistence
         }
     }
 
-    public void increaseCount(
+    @Transactional
+    public Cart setCount(
             final Long cartId,
-            final Long productId)
+            final Long productId,
+            final Long newCount)
     {
         // Find existing cart
         final Optional<CartEntity> existingCart = cartRepository.findById(cartId);
@@ -95,7 +116,9 @@ public class CartPersistence
             if(productLineEntity.isPresent())
             {
                 final ProductLineEntity productMatch = productLineEntity.get();
-                productMatch.setCount(productMatch.getCount() + 1);
+                productMatch.setCount(newCount >= 0 ? newCount: 0);
+
+                return Mapper.convertEntityToDTO(existingCart.get());
             }
             else
             {
@@ -109,7 +132,7 @@ public class CartPersistence
     }
 
     @Transactional
-    public void reduceCount(
+    public Cart reduceCount(
             final Long cartId,
             final Long productId)
     {
@@ -127,6 +150,8 @@ public class CartPersistence
                 final ProductLineEntity productMatch = productLineEntity.get();
                 Long updatedCount = productMatch.getCount() > 0 ? productMatch.getCount() - 1: 0;
                 productMatch.setCount(updatedCount);
+
+                return Mapper.convertEntityToDTO(existingCart.get());
             }
             else
             {
