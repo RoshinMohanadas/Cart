@@ -1,6 +1,7 @@
 package com.roshin.cart.persistence;
 
 import com.roshin.cart.dto.Cart;
+import com.roshin.cart.dto.ProductInfo;
 import com.roshin.cart.model.CartEntity;
 import com.roshin.cart.model.ProductLineEntity;
 import com.roshin.cart.util.Mapper;
@@ -50,7 +51,7 @@ public class CartPersistence
     }
 
     @Transactional
-    public Cart addProductToCart(final Long cartId, final Long productId)
+    public Cart addProductToCart(final Long cartId, final ProductInfo product)
     {
         // Find existing cart
         final Optional<CartEntity> existingCart = cartRepository.findById(cartId);
@@ -58,14 +59,30 @@ public class CartPersistence
         if(existingCart.isPresent())
         {
             // Check if product already exists in cart
-            if(!existingCart.get().getProductLines().stream().anyMatch(p -> p.getProductId().equals(productId)))
+            if(!existingCart.get().getProductLines().stream().anyMatch(p -> p.getProductId().equals(product.getId())))
             {
                 existingCart.get().getProductLines().addFirst(ProductLineEntity.builder()
-                        .productId(productId)
+                        .productId(product.getId())
+                        .productCost(product.getPrice())
                         .count(1L)
                         .build());
             }
 
+            return Mapper.convertEntityToDTO(existingCart.get());
+        }
+        else
+        {
+            throw new NotFoundException("Cart not found");
+        }
+    }
+
+    public Cart getCart(final Long id)
+    {
+        // Find existing cart
+        final Optional<CartEntity> existingCart = cartRepository.findById(id);
+
+        if(existingCart.isPresent())
+        {
             return Mapper.convertEntityToDTO(existingCart.get());
         }
         else
@@ -117,39 +134,6 @@ public class CartPersistence
             {
                 final ProductLineEntity productMatch = productLineEntity.get();
                 productMatch.setCount(newCount >= 0 ? newCount: 0);
-
-                return Mapper.convertEntityToDTO(existingCart.get());
-            }
-            else
-            {
-                throw new NotFoundException("Product not found");
-            }
-        }
-        else
-        {
-            throw new NotFoundException("Cart not found");
-        }
-    }
-
-    @Transactional
-    public Cart reduceCount(
-            final Long cartId,
-            final Long productId)
-    {
-        // Find existing cart
-        final Optional<CartEntity> existingCart = cartRepository.findById(cartId);
-
-        if(existingCart.isPresent())
-        {
-            // Find the product
-            Optional<ProductLineEntity> productLineEntity = existingCart.get().getProductLines().stream()
-                    .filter(p -> p.getProductId().equals(productId)).findFirst();
-
-            if(productLineEntity.isPresent())
-            {
-                final ProductLineEntity productMatch = productLineEntity.get();
-                Long updatedCount = productMatch.getCount() > 0 ? productMatch.getCount() - 1: 0;
-                productMatch.setCount(updatedCount);
 
                 return Mapper.convertEntityToDTO(existingCart.get());
             }

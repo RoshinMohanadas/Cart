@@ -15,4 +15,6 @@ public class Cart implements Serializable
     private String user;
 
     private List<ProductLine> productLines;
+
+    private Double totalCost;
 }

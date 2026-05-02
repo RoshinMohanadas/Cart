@@ -13,5 +13,9 @@ public class ProductLine implements Serializable
 
     private Long productId;
 
+    private Double productCost;
+
     private Long count;
+
+    private Double lineCost;
 }

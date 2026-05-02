@@ -13,16 +13,18 @@ public class Mapper
 
     public static Cart convertEntityToDTO(CartEntity entity)
     {
-        Cart cart = Cart.builder()
+        return Cart.builder()
                 .id(entity.getId())
                 .user(entity.getUsername())
                 .productLines(entity.getProductLines().stream().map(pl -> ProductLine.builder()
                         .id(pl.getId())
                         .productId(pl.getProductId())
                         .count(pl.getCount())
+                        .productCost(pl.getProductCost())
+                        .lineCost(pl.getCost())
                         .build())
                         .toList())
+                .totalCost(entity.getTotalCost())
                 .build();
-        return cart;
     }
 }
