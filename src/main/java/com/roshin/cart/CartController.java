@@ -24,14 +24,20 @@ public class CartController
         return ResponseEntity.ok(cartService.createCart(user));
     }
 
-    @GetMapping("/refresh/{id}")
-    public ResponseEntity<Cart> getRefreshedCart(@PathVariable("id") final Long cartId)
+    @PostMapping("/refresh/{id}")
+    public ResponseEntity<Cart> refreshCart(@PathVariable("id") final Long cartId)
     {
-        return ResponseEntity.ok(cartService.getUpdatedCart(cartId));
+        return ResponseEntity.ok(cartService.updateCart(cartId));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Cart> getCart(@PathVariable("id") final Long cartId)
+    {
+        return ResponseEntity.ok(cartService.getCart(cartId));
     }
 
     // Add to cart
-    @PutMapping("add/{cartId}/{productId}")
+    @PostMapping("add/{cartId}")
     public ResponseEntity<Cart> addProductToCart(
             @PathVariable("cartId") final Long cartId,
             @RequestBody final ProductInfo product)
@@ -40,7 +46,7 @@ public class CartController
     }
 
     // Remove from cart
-    @PutMapping("delete/{cartId}/{productId}")
+    @PostMapping("delete/{cartId}/{productId}")
     public ResponseEntity<Cart> deleteProductFromCart(
             @PathVariable("cartId") final Long cartId,
             @PathVariable("productId") final Long productId)

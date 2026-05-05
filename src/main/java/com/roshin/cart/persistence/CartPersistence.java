@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.Optional;
 
 @Repository
@@ -66,6 +67,7 @@ public class CartPersistence
                         .productCost(product.getPrice())
                         .count(1L)
                         .build());
+                entityManager.flush();
             }
 
             return Mapper.convertEntityToDTO(existingCart.get());
@@ -146,5 +148,17 @@ public class CartPersistence
         {
             throw new NotFoundException("Cart not found");
         }
+    }
+
+    @Transactional
+    public Cart updateCartPrices(Long cartId, Map<Long, ProductInfo> productMap)
+    {
+        CartEntity cartEntity = entityManager.find(CartEntity.class, cartId);
+
+        cartEntity.getProductLines().forEach(pl ->
+            pl.setProductCost(productMap.getOrDefault(pl.getProductId(), ProductInfo.builder().price(0.0).build()).getPrice())
+        );
+
+        return Mapper.convertEntityToDTO(cartEntity);
     }
 }
